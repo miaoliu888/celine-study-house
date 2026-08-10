@@ -1,21 +1,32 @@
 /* ============================================================
-   tts.js — Web Speech API 封装（robust v2）
+   tts.js — Web Speech API 封装（robust v3, iOS 兼容）
    修复：
-   - Chrome 桌面端静音 bug：speak 后 pause()+resume() 强制出声
-   - iOS Safari：首播 / 非手势自动播被拦截 → 首次手势内预热(primeTTS)
-   - voices 异步加载为空 → 多次重试兜底，避免静默
+   - iOS Safari：必须在用户手势内「同步」调用 speak()，任何 await 都会使
+     发音被系统拦截 → 本版在 speak() 前不再 await 任何异步操作。
+   - iOS 上「pause()+resume()」会卡死音频（它是 Chrome 桌面端的修复），
+     故 iOS 跳过该黑科技。
+   - voices 异步加载：同步兜底读取，缺失也不阻塞发音。
+   - 全局缓存 TTS 语言，发音前不再读 IndexedDB。
    ============================================================ */
+
+const IS_IOS = /iPad|iPhone|iPod/.test(navigator.userAgent) ||
+  (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
 
 let voicesCache = null;
 let preferredVoice = null;
 let ready = false;
 let initPromise = null;
 let primed = false;
+let currentLang = 'en-GB';
+
+function safeGetVoices() {
+  try { return window.speechSynthesis.getVoices() || []; } catch (e) { return []; }
+}
 
 function loadVoices() {
   return new Promise((resolve) => {
     if (!('speechSynthesis' in window)) return resolve([]);
-    const get = () => window.speechSynthesis.getVoices() || [];
+    const get = safeGetVoices;
     const v = get();
     if (v && v.length) return resolve(v);
     let done = false;
@@ -26,7 +37,6 @@ function loadVoices() {
       resolve(get());
     };
     window.speechSynthesis.addEventListener?.('voiceschanged', finish);
-    // 多次重试，覆盖 voices 在不同浏览器下的异步加载时机
     setTimeout(finish, 300);
     setTimeout(finish, 1000);
     setTimeout(finish, 2000);
@@ -38,7 +48,6 @@ async function ensureReady() {
   if (initPromise) return initPromise;
   initPromise = (async () => {
     voicesCache = await loadVoices();
-    // 优先级：en-GB 任意 -> en-US -> 带 Google/Microsoft/Samantha 等优质语音
     const scored = voicesCache
       .filter((v) => v.lang)
       .map((v) => {
@@ -60,9 +69,23 @@ export function isTTSSupported() {
   return 'speechSynthesis' in window && 'SpeechSynthesisUtterance' in window;
 }
 
+/** 在入口处预热语音列表（不阻塞） */
+export function ensureReadyPrewarm() {
+  if (!isTTSSupported()) return;
+  if (!ready && !initPromise) ensureReady();
+}
+
+/** 设置/读取当前发音语言（避免发音前读 IndexedDB） */
+export function setTTSLang(lang) {
+  if (lang === 'en-US' || lang === 'en-GB') currentLang = lang;
+}
+export function getTTSLang() {
+  return currentLang;
+}
+
 /**
- * iOS / 部分浏览器：在首个用户手势内做一次"静音预热"，
- * 解锁 speechSynthesis，使后续（含非手势的）自动读词也能出声。
+ * iOS / 部分浏览器：在首个用户手势内做一次「静音预热」，解锁 speechSynthesis，
+ * 使后续的自动读词（如提交后自动读下一词）也能出声。
  */
 export function primeTTS() {
   if (primed || !isTTSSupported()) return;
@@ -74,52 +97,66 @@ export function primeTTS() {
     u.pitch = 1;
     window.speechSynthesis.speak(u);
   } catch (e) {
-    primed = false; // 失败则下次手势再试
+    primed = false;
   }
 }
 
-function pickVoice(wantLang) {
-  if (!voicesCache || !voicesCache.length) return null;
+function pickVoice(cache, wantLang) {
+  if (!cache || !cache.length) return null;
   return (
-    voicesCache.find((v) => v.lang && v.lang.toLowerCase() === wantLang.toLowerCase()) ||
+    cache.find((v) => v.lang && v.lang.toLowerCase() === wantLang.toLowerCase()) ||
     preferredVoice ||
     null
   );
 }
 
-function doSpeak(word, wantLang, rate) {
+/**
+ * speakWord({ word, lang, rate })
+ *   - 同步触发 speak()，保证在用户手势窗口内执行（iOS 关键）
+ *   - lang 省略时使用全局 currentLang
+ *   - rate: 'normal' | 'slow' | <number 0..2>
+ */
+export function speakWord({ word, lang, rate = 'normal' } = {}) {
+  if (!word) return Promise.resolve();
+  if (!isTTSSupported()) return Promise.reject(new Error('当前浏览器不支持语音合成'));
+
+  const wantLang = (lang === 'en-US' ? 'en-US' : lang === 'en-GB' ? 'en-GB' : null) || currentLang || 'en-GB';
+  const cache = (voicesCache && voicesCache.length) ? voicesCache : safeGetVoices();
+  const v = pickVoice(cache, wantLang);
+  let r = 0.85;
+  if (rate === 'slow') r = 0.6;
+  else if (typeof rate === 'number') r = rate;
+
+  // 后台继续预热 preferred voice（不阻塞本次发音）
+  if (!ready) ensureReady();
+
   return new Promise((resolve) => {
-    const build = () => {
+    let settled = false;
+    const done = () => { if (!settled) { settled = true; resolve(); } };
+
+    const utter = (word, rate) => {
       const u = new SpeechSynthesisUtterance(word);
       u.lang = wantLang;
-      const v = pickVoice(wantLang);
       if (v) u.voice = v;
-      let r = 0.85;
-      if (rate === 'slow') r = 0.6;
-      else if (typeof rate === 'number') r = rate;
-      u.rate = r;
+      u.rate = rate;
       u.pitch = 1;
       u.volume = 1;
       return u;
     };
 
-    let settled = false;
-    const done = () => {
-      if (!settled) {
-        settled = true;
-        resolve();
-      }
-    };
-
-    let u = build();
+    const u = utter(word, r);
     u.onend = done;
     u.onerror = () => done();
 
     try {
-      window.speechSynthesis.speak(u);
-      // Chrome 静音修复：暂停再恢复，强制音频输出
-      window.speechSynthesis.pause();
+      window.speechSynthesis.cancel();
       window.speechSynthesis.resume();
+      window.speechSynthesis.speak(u); // ← 同步触发，关键
+      if (!IS_IOS) {
+        // Chrome 桌面端静音修复：暂停再恢复，强制音频输出
+        window.speechSynthesis.pause();
+        window.speechSynthesis.resume();
+      }
     } catch (e) {
       done();
       return;
@@ -128,15 +165,17 @@ function doSpeak(word, wantLang, rate) {
     // 兜底：若 onend 异常快地触发（<200ms，疑似静音失败），重试一次
     setTimeout(() => {
       if (settled) return;
-      const u2 = build();
+      const u2 = utter(word, r);
       u2.onend = done;
       u2.onerror = () => done();
       try {
         window.speechSynthesis.cancel();
         window.speechSynthesis.resume();
         window.speechSynthesis.speak(u2);
-        window.speechSynthesis.pause();
-        window.speechSynthesis.resume();
+        if (!IS_IOS) {
+          window.speechSynthesis.pause();
+          window.speechSynthesis.resume();
+        }
       } catch (e) {
         done();
       }
@@ -144,32 +183,14 @@ function doSpeak(word, wantLang, rate) {
   });
 }
 
-/**
- * speakWord({ word, lang = 'en-GB', rate = 'normal' })
- *   rate: 'normal' | 'slow' | <number 0..2>
- */
-export async function speakWord({ word, lang = 'en-GB', rate = 'normal' } = {}) {
-  if (!word) return;
-  if (!isTTSSupported()) {
-    throw new Error('当前浏览器不支持语音合成');
-  }
-  await ensureReady();
-
-  // 停掉上一段，避免叠加；再 resume 复位状态
-  try { window.speechSynthesis.cancel(); } catch (e) {}
-  try { window.speechSynthesis.resume(); } catch (e) {}
-
-  const wantLang = lang === 'en-US' ? 'en-US' : 'en-GB';
-  await doSpeak(word, wantLang, rate);
-}
-
 export function getVoiceInfo() {
-  if (!voicesCache) return { supported: isTTSSupported(), count: 0, hasGB: false, hasUS: false };
+  const cache = (voicesCache && voicesCache.length) ? voicesCache : safeGetVoices();
+  if (!isTTSSupported()) return { supported: false, count: 0, hasGB: false, hasUS: false };
   return {
     supported: true,
-    count: voicesCache.length,
-    hasGB: voicesCache.some((v) => v.lang?.toLowerCase().startsWith('en-gb')),
-    hasUS: voicesCache.some((v) => v.lang?.toLowerCase().startsWith('en-us')),
+    count: cache.length,
+    hasGB: cache.some((v) => v.lang?.toLowerCase().startsWith('en-gb')),
+    hasUS: cache.some((v) => v.lang?.toLowerCase().startsWith('en-us')),
     preferred: preferredVoice?.name,
   };
 }
