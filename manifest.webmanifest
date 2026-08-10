@@ -1,0 +1,48 @@
+{
+  "name": "celine 的蓝兔学习屋",
+  "short_name": "蓝兔学习",
+  "description": "celine 的私人学习工作台：每日计划、KET 听写、番茄专注、错题复习、成长记录。",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#FFF7FA",
+  "theme_color": "#FF8FB1",
+  "lang": "zh-CN",
+  "dir": "ltr",
+  "categories": ["education", "productivity", "lifestyle"],
+  "icons": [
+    {
+      "src": "./assets/pwa-icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    },
+    {
+      "src": "./assets/pwa-icon-maskable.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "maskable"
+    }
+  ],
+  "shortcuts": [
+    {
+      "name": "开始听写",
+      "short_name": "听写",
+      "url": "./#/dictation",
+      "icons": [{ "src": "./assets/pwa-icon.svg", "sizes": "any", "type": "image/svg+xml" }]
+    },
+    {
+      "name": "今日计划",
+      "short_name": "计划",
+      "url": "./#/plan",
+      "icons": [{ "src": "./assets/pwa-icon.svg", "sizes": "any", "type": "image/svg+xml" }]
+    },
+    {
+      "name": "KET 英语",
+      "short_name": "英语",
+      "url": "./#/english",
+      "icons": [{ "src": "./assets/pwa-icon.svg", "sizes": "any", "type": "image/svg+xml" }]
+    }
+  ]
+}
