@@ -184,17 +184,24 @@ async function renderReading28(task, today) {
 }
 
 async function toggleReadingDay(taskId, date, slot) {
-  const lg = await getTaskLog(date, taskId, slot);
-  if (lg && lg.completed) {
-    // 取消
-    await setTaskProgress(date, taskId, slot, 0);
-    const cur = await getTaskLog(date, taskId, slot);
-    if (cur) {
-      cur.completed = false;
-      await Store.putTaskLog(cur);
+  try {
+    const lg = await getTaskLog(date, taskId, slot);
+    if (lg && lg.completed) {
+      // 取消
+      await setTaskProgress(date, taskId, slot, 0);
+      const cur = await getTaskLog(date, taskId, slot);
+      if (cur) {
+        cur.completed = false;
+        await Store.putTaskLog(cur);
+      }
+      toast('已取消打卡', 'info');
+    } else {
+      await toggleTaskComplete(date, taskId, slot);
+      toast('✓ 已打卡', 'success');
     }
-  } else {
-    await toggleTaskComplete(date, taskId, slot);
+  } catch (e) {
+    console.error(e);
+    toast('操作失败，请重试', 'warn');
   }
   // 检查发奖
   const prog = await getTodayProgress(date);
@@ -202,6 +209,9 @@ async function toggleReadingDay(taskId, date, slot) {
     const r = await checkAndAward(date);
     if (r.awarded) toast('🎉 今日全部完成！+¥1', 'success');
   }
+  // 始终重渲染计划视图，保证视觉与数据一致
+  const main = document.getElementById('main');
+  if (main) renderPlan(main);
   window.dispatchEvent(new CustomEvent('plan:update'));
 }
 
@@ -265,28 +275,34 @@ function renderSplitRow(t, date, slot, label, lg) {
 }
 
 async function toggleTask(date, id, slot, task) {
-  const lg = await getTaskLog(date, id, slot);
-  if (lg && lg.completed) {
-    // 取消完成
-    await setTaskProgress(date, id, slot, 0);
-    const cur = await getTaskLog(date, id, slot);
-    if (cur) {
-      cur.completed = false;
-      await Store.putTaskLog(cur);
+  try {
+    const lg = await getTaskLog(date, id, slot);
+    if (lg && lg.completed) {
+      // 取消完成
+      await setTaskProgress(date, id, slot, 0);
+      const cur = await getTaskLog(date, id, slot);
+      if (cur) {
+        cur.completed = false;
+        await Store.putTaskLog(cur);
+      }
+      toast('已取消完成', 'info');
+    } else {
+      await toggleTaskComplete(date, id, slot);
+      toast('✓ 已完成', 'success');
     }
-  } else {
-    await toggleTaskComplete(date, id, slot);
+  } catch (e) {
+    console.error(e);
+    toast('操作失败，请重试', 'warn');
   }
   // 检查发奖
   const p = await getTodayProgress(date);
   if (p.done >= p.required && p.required > 0) {
     const r = await checkAndAward(date);
     if (r.awarded) toast('🎉 今日全部完成！+¥1', 'success');
-  } else {
-    // 重新渲染
-    const main = document.getElementById('main');
-    if (main) renderPlan(main);
   }
+  // 始终重渲染计划视图，保证视觉与数据一致（修复“点了没反应”）
+  const main = document.getElementById('main');
+  if (main) renderPlan(main);
   // 刷新首页进度
   window.dispatchEvent(new CustomEvent('plan:update'));
 }
