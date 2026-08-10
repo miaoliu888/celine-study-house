@@ -5,7 +5,7 @@
 import { Store } from '../store.js';
 import { todayStr, render, html, toast, confirmDialog } from '../utils.js';
 import { bunny } from '../bunny.js';
-import { getVoiceInfo, isTTSSupported } from '../tts.js';
+import { getVoiceInfo, isTTSSupported, speakWord, setTTSLang } from '../tts.js';
 import { DEFAULT_TASKS, getAllTasks } from '../tasks.js';
 
 export async function renderSettings(root) {
@@ -149,7 +149,6 @@ export async function renderSettings(root) {
 
   root.querySelector('[data-act="test-tts"]')?.addEventListener('click', async () => {
     const lang = root.querySelector('#set-lang').value;
-    const { speakWord } = await import('../tts.js');
     await speakWord({ word: 'because', lang, rate: 'normal' });
   });
 
@@ -303,6 +302,7 @@ function bindSelect(root, sel, key) {
   if (!el) return;
   el.addEventListener('change', async () => {
     await Store.putSetting({ key, value: el.value });
+    if (key === 'tts_lang') setTTSLang(el.value); // 实时同步发音语言缓存
     toast('已保存', 'success');
   });
 }
