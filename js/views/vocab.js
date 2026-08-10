@@ -76,9 +76,7 @@ export async function renderVocab(root) {
   });
   root.querySelectorAll('[data-speak]').forEach((b) => {
     b.addEventListener('click', async () => {
-      const all = await Store.getAllSettings();
-      const langSet = all.find((s) => s.key === 'tts_lang')?.value || 'en-GB';
-      await speakWord({ word: b.dataset.speak, lang: langSet });
+      await speakWord({ word: b.dataset.speak });
     });
   });
 }
