@@ -1,0 +1,198 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>QR 码生成 · celine 的蓝兔学习屋</title>
+  <style>
+    * { box-sizing: border-box; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "PingFang SC", "Microsoft YaHei", system-ui, sans-serif;
+      background: linear-gradient(135deg, #FFE0EC 0%, #FFF7FA 100%);
+      min-height: 100vh;
+      margin: 0;
+      padding: 24px 16px;
+      color: #4A2A38;
+    }
+    .card {
+      max-width: 480px;
+      margin: 0 auto;
+      background: #fff;
+      border-radius: 24px;
+      padding: 32px 24px;
+      box-shadow: 0 8px 32px rgba(255, 143, 177, .15);
+    }
+    h1 {
+      font-size: 22px;
+      margin: 0 0 8px;
+      text-align: center;
+    }
+    .bunny { font-size: 48px; text-align: center; margin-bottom: 8px; }
+    .sub {
+      text-align: center;
+      color: #6B7592;
+      font-size: 13px;
+      margin-bottom: 24px;
+    }
+    label {
+      display: block;
+      font-size: 14px;
+      font-weight: 600;
+      margin: 16px 0 6px;
+    }
+    input, select {
+      width: 100%;
+      height: 44px;
+      border: 1.5px solid #FFE0EC;
+      border-radius: 12px;
+      padding: 0 14px;
+      font-size: 15px;
+      background: #FFF7FA;
+      color: #4A2A38;
+      outline: none;
+      transition: border-color .2s;
+    }
+    input:focus { border-color: #FF8FB1; }
+    .btn {
+      width: 100%;
+      height: 48px;
+      border: 0;
+      border-radius: 14px;
+      background: linear-gradient(135deg, #FF8FB1, #F26B97);
+      color: #fff;
+      font-size: 16px;
+      font-weight: 700;
+      cursor: pointer;
+      margin-top: 20px;
+      box-shadow: 0 4px 12px rgba(255, 143, 177, .3);
+      transition: transform .12s;
+    }
+    .btn:active { transform: scale(.98); }
+    .qr-box {
+      margin: 24px auto 0;
+      text-align: center;
+      padding: 20px;
+      background: #FFF7FA;
+      border-radius: 16px;
+      min-height: 200px;
+      display: none;
+    }
+    .qr-box.show { display: block; }
+    .qr-box img {
+      max-width: 280px;
+      width: 100%;
+      height: auto;
+      border-radius: 8px;
+      background: #fff;
+      padding: 8px;
+    }
+    .url {
+      margin-top: 12px;
+      font-size: 12px;
+      color: #6B7592;
+      word-break: break-all;
+      font-family: monospace;
+    }
+    .hint {
+      margin-top: 16px;
+      padding: 12px;
+      background: #FFF4DC;
+      border-radius: 10px;
+      font-size: 13px;
+      color: #7A5410;
+    }
+    .preset {
+      display: flex;
+      gap: 6px;
+      flex-wrap: wrap;
+      margin-top: 8px;
+    }
+    .preset button {
+      padding: 6px 10px;
+      background: #fff;
+      border: 1px solid #FFE0EC;
+      border-radius: 16px;
+      font-size: 12px;
+      cursor: pointer;
+      color: #F26B97;
+    }
+    .preset button:hover { background: #FFE0EC; }
+  </style>
+</head>
+<body>
+  <div class="card">
+    <div class="bunny">🌸🐰🌸</div>
+    <h1>蓝兔学习屋 · QR 码生成</h1>
+    <div class="sub">部署到云端后，把 URL 填这里生成 QR，手机扫码即用</div>
+
+    <label>学习屋 URL</label>
+    <input id="url" type="url" placeholder="https://celine.github.io/siven-study-house/" />
+    <div class="preset">
+      <button data-preset="https://celine.github.io/siven-study-house/">GitHub Pages 示例</button>
+      <button data-preset="https://siven-study-house.pages.dev">Cloudflare Pages 示例</button>
+    </div>
+
+    <label>QR 码尺寸</label>
+    <select id="size">
+      <option value="300">300 × 300（推荐）</option>
+      <option value="500">500 × 500（高清）</option>
+      <option value="800">800 × 800（打印）</option>
+    </select>
+
+    <button class="btn" id="gen">生成 QR 码</button>
+
+    <div class="qr-box" id="qrBox">
+      <img id="qrImg" alt="QR Code" />
+      <div class="url" id="urlOut"></div>
+      <div class="hint">📱 用手机相机扫码 → 浏览器打开学习屋 → 点击浏览器菜单 "添加到主屏幕"，桌面就有粉兔图标了 ✨</div>
+    </div>
+  </div>
+
+  <script>
+    const $ = (s) => document.querySelector(s);
+    const urlInput = $('#url');
+    const sizeSel = $('#size');
+    const qrBox = $('#qrBox');
+    const qrImg = $('#qrImg');
+    const urlOut = $('#urlOut');
+
+    document.querySelectorAll('[data-preset]').forEach((b) => {
+      b.addEventListener('click', () => {
+        urlInput.value = b.dataset.preset;
+        generate();
+      });
+    });
+
+    function generate() {
+      const url = urlInput.value.trim();
+      if (!url) {
+        alert('请输入 URL');
+        return;
+      }
+      if (!/^https?:\/\//.test(url)) {
+        alert('URL 必须以 http:// 或 https:// 开头');
+        return;
+      }
+      const size = sizeSel.value;
+      const encoded = encodeURIComponent(url);
+      const apiUrl = `https://api.qrserver.com/v1/create-qr-code/?size=${size}x${size}&data=${encoded}&color=4A2A38&bgcolor=FFFFFF&margin=10`;
+      qrImg.src = apiUrl;
+      urlOut.textContent = url;
+      qrBox.classList.add('show');
+      // 滚动到 QR
+      setTimeout(() => qrBox.scrollIntoView({ behavior: 'smooth', block: 'nearest' }), 100);
+    }
+
+    $('#gen').addEventListener('click', generate);
+    urlInput.addEventListener('keydown', (e) => { if (e.key === 'Enter') generate(); });
+    urlInput.addEventListener('input', () => qrBox.classList.remove('show'));
+
+    // 从 URL hash 读取
+    if (location.hash) {
+      const u = decodeURIComponent(location.hash.slice(1));
+      urlInput.value = u;
+      generate();
+    }
+  </script>
+</body>
+</html>
