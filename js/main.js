@@ -7,7 +7,7 @@ import { buildKETDatabase } from './ket-db.js';
 import { ensureTaskConfig } from './tasks.js';
 import { init as routerInit, handleRouteChange, getCurrentRoute } from './router.js';
 import { todayStr, toast } from './utils.js';
-import { primeTTS } from './tts.js';
+import { primeTTS, setTTSLang, ensureReadyPrewarm } from './tts.js';
 
 // 首次用户手势内预热 speechSynthesis：解锁 iOS Safari 的自动读词
 function attachTTSPrime() {
@@ -38,6 +38,10 @@ async function init() {
   await ensureKETDatabase();
   await ensureTaskConfig();
   await ensureDefaultSettings();
+  // 预热 TTS：缓存发音语言、提前加载语音列表（避免发音前 await 破坏 iOS 手势窗口）
+  const allSettings = await Store.getAllSettings();
+  setTTSLang(allSettings.find((s) => s.key === 'tts_lang')?.value || 'en-GB');
+  ensureReadyPrewarm();
   attachTTSPrime();
   routerInit();
 
