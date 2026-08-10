@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, maximum-scale=1" />
+  <meta name="theme-color" content="#FF8FB1" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+  <meta name="apple-mobile-web-app-title" content="蓝兔学习" />
+  <meta name="mobile-web-app-capable" content="yes" />
+  <meta name="application-name" content="蓝兔学习" />
+  <meta name="format-detection" content="telephone=no" />
+  <link rel="apple-touch-icon" href="./assets/pwa-icon.svg" />
+  <link rel="manifest" href="./manifest.webmanifest" />
+  <title>celine 的蓝兔学习屋</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Quicksand:wght@500;600;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="./css/tokens.css" />
+  <link rel="stylesheet" href="./css/base.css" />
+  <link rel="stylesheet" href="./css/layout.css" />
+  <link rel="stylesheet" href="./css/components.css" />
+  <link rel="stylesheet" href="./css/pages.css" />
+  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><circle cx='50' cy='60' r='35' fill='%23FF8FB1'/><ellipse cx='35' cy='28' rx='7' ry='16' fill='%23FF8FB1'/><ellipse cx='65' cy='28' rx='7' ry='16' fill='%23FF8FB1'/><circle cx='65' cy='24' r='4' fill='%23FFB8C8'/></svg>" />
+</head>
+<body>
+  <noscript>
+    <div style="padding:24px;font-family:system-ui;background:#FFE5EC;color:#9B2C3F;border-radius:8px;margin:16px;">
+      浏览器禁用了 JavaScript，请启用后刷新。
+    </div>
+  </noscript>
+  <script>
+    // 协议检测：file:// 协议下 ES Module 不被浏览器支持
+    if (location.protocol === 'file:') {
+      document.body.innerHTML =
+        '<div style="max-width:480px;margin:60px auto;padding:32px;font-family:system-ui;background:#fff;border:2px solid #FFC9D9;border-radius:16px;color:#1F2A44;">' +
+        '<div style="font-size:64px;text-align:center;">🐰</div>' +
+        '<h2 style="text-align:center;margin:12px 0 8px;">celine 的蓝兔学习屋需要用 HTTP 打开</h2>' +
+        '<p style="text-align:center;color:#6B7592;margin-bottom:20px;">浏览器在 <code>file://</code> 协议下会拦截 ES Module，无法加载页面。</p>' +
+        '<div style="background:#F7FAFF;padding:16px;border-radius:12px;line-height:1.8;font-size:14px;">' +
+        '<b>最简单的方式：</b><br>' +
+        '1. 回到这个文件夹<br>' +
+        '2. 双击 <code style="background:#fff;padding:2px 6px;border-radius:4px;color:#B07A1F;">打开蓝兔学习屋.bat</code><br>' +
+        '3. 它会自动启动本地服务并打开浏览器' +
+        '</div>' +
+        '<p style="text-align:center;color:#6B7592;font-size:13px;margin-top:20px;">如果你已经打开过 .bat 但还看到这个页面，把那个黑色窗口的内容截图发给我。</p>' +
+        '</div>';
+    }
+  </script>
+  <div class="app">
+    <nav class="nav" aria-label="主导航">
+      <div class="nav__brand">
+        <div class="nav__avatar" id="nav-avatar" aria-hidden="true"></div>
+        <div class="nav__name" id="nav-name">celine</div>
+      </div>
+      <div class="nav__list" id="nav-list"></div>
+      <div class="nav__footer" id="nav-footer"></div>
+    </nav>
+
+    <main class="main" id="main-host">
+      <div class="main__inner">
+        <div class="page-header">
+          <h1 class="page-title" id="page-title">桌面</h1>
+        </div>
+        <div id="main"></div>
+      </div>
+    </main>
+  </div>
+
+  <script type="module" src="./js/main.js"></script>
+  <script>
+    // 注册 Service Worker（PWA 离线 + 桌面安装）
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('load', () => {
+        navigator.serviceWorker.register('./sw.js').then((reg) => {
+          console.log('[Siven] SW registered, scope:', reg.scope);
+        }).catch((err) => {
+          console.warn('[Siven] SW 注册失败：', err);
+        });
+      });
+    }
+
+    // iOS Safari 安装提示
+    function isIos() {
+      return /iPhone|iPad|iPod/i.test(navigator.userAgent) && !window.MSStream;
+    }
+    function isInStandalone() {
+      return ('standalone' in navigator) && navigator.standalone;
+    }
+    function dismissed() {
+      return localStorage.getItem('siven_pwa_dismissed') === '1';
+    }
+    if (isIos() && !isInStandalone() && !dismissed()) {
+      const tip = document.createElement('div');
+      tip.style.cssText = 'position:fixed;left:16px;right:16px;bottom:16px;z-index:9998;background:#fff;border:2px solid #FF8FB1;border-radius:14px;padding:14px 16px;font-size:13px;line-height:1.6;color:#4A2A38;box-shadow:0 4px 16px rgba(0,0,0,.1);display:flex;align-items:center;gap:12px;';
+      tip.innerHTML = '<div style="font-size:24px;">📲</div>' +
+        '<div class="grow" style="flex:1;">点底部分享按钮 <b>📤</b>，选 <b>添加到主屏幕</b>，从桌面打开就像 App 一样</div>' +
+        '<button id="__pwa_dismiss" style="background:none;border:0;font-size:18px;color:#9AA3BA;cursor:pointer;padding:0 4px;">✕</button>';
+      document.body.appendChild(tip);
+      document.getElementById('__pwa_dismiss').addEventListener('click', () => {
+        localStorage.setItem('siven_pwa_dismissed', '1');
+        tip.remove();
+      });
+    }
+  </script>
+</body>
+</html>
