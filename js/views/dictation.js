@@ -215,10 +215,8 @@ async function playCurrent(root, rate = STATE.pace) {
       toast('当前浏览器不支持发音，请到设置里换 Chrome / Edge / Safari。', 'warn');
       return;
     }
-    // 读设置里的语言
-    const all = await Store.getAllSettings();
-    const langSet = all.find((s) => s.key === 'tts_lang')?.value || 'en-GB';
-    await speakWord({ word: cur.word, lang: langSet, rate });
+    // 语言用全局缓存，避免发音前 await 破坏 iOS 手势窗口
+    await speakWord({ word: cur.word, rate });
   } catch (e) {
     toast('播放失败：' + e.message, 'error');
   } finally {
@@ -380,9 +378,7 @@ function renderSummary(root) {
   // 绑定发音
   root.querySelectorAll('[data-speak]').forEach((b) => {
     b.addEventListener('click', async () => {
-      const all = await Store.getAllSettings();
-      const langSet = all.find((s) => s.key === 'tts_lang')?.value || 'en-GB';
-      await speakWord({ word: b.dataset.speak, lang: langSet });
+      await speakWord({ word: b.dataset.speak });
     });
   });
   // 庆祝
