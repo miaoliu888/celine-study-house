@@ -1,0 +1,87 @@
+/* ============================================================
+   Siven 蓝兔学习屋 · Design Tokens
+   主题：少女感 × 清爽学习 × 日系治愈 × 电子手帐
+   ============================================================ */
+
+:root {
+  /* —— 主色（美乐蒂粉） —— */
+  --c-blue-500: #FF8FB1;       /* 主粉（替代主蓝） */
+  --c-blue-600: #F26B97;       /* 深粉 */
+  --c-blue-400: #FFA8C4;       /* 中粉 */
+  --c-blue-200: #FFE0EC;       /* 浅粉高亮/导航激活 */
+  --c-blue-100: #FFF0F5;       /* 极浅粉 */
+  --c-blue-50:  #FFF7FA;       /* 背景 */
+
+  /* —— 中性 —— */
+  --c-ink-900: #1F2A44;        /* 主文字 */
+  --c-ink-700: #3B4760;
+  --c-ink-500: #6B7592;
+  --c-ink-300: #9AA3BA;
+  --c-ink-200: #C3CADA;
+  --c-ink-100: #E2E6F1;
+  --c-ink-50:  #F0F3F9;
+
+  /* —— 辅助色（点缀用，不滥用） —— */
+  --c-cream:   #FFE6A8;        /* 奶黄 */
+  --c-lilac:   #D6C8FF;        /* 浅紫 */
+  --c-mint:    #B8E5C8;        /* 薄荷绿 */
+  --c-pink:    #FFC9D9;        /* 淡粉 */
+  --c-peach:   #FFD8B5;        /* 蜜桃 */
+
+  /* —— 状态 —— */
+  --c-success: #4EC7A8;
+  --c-warn:    #F0B45A;
+  --c-error:   #E96C7A;        /* 不要刺眼，柔红 */
+
+  /* —— 阴影（极轻） —— */
+  --shadow-sm: 0 1px 2px rgba(31, 42, 68, 0.04), 0 2px 6px rgba(31, 42, 68, 0.04);
+  --shadow-md: 0 2px 4px rgba(31, 42, 68, 0.05), 0 8px 20px rgba(31, 42, 68, 0.06);
+  --shadow-lg: 0 4px 12px rgba(31, 42, 68, 0.08), 0 18px 36px rgba(31, 42, 68, 0.08);
+
+  /* —— 圆角 —— */
+  --r-xs: 8px;
+  --r-sm: 12px;
+  --r-md: 16px;
+  --r-lg: 20px;
+  --r-xl: 28px;
+  --r-pill: 999px;
+
+  /* —— 间距 —— */
+  --sp-1: 4px;
+  --sp-2: 8px;
+  --sp-3: 12px;
+  --sp-4: 16px;
+  --sp-5: 20px;
+  --sp-6: 24px;
+  --sp-7: 32px;
+  --sp-8: 40px;
+  --sp-9: 56px;
+
+  /* —— 字号 —— */
+  --fs-12: 12px;
+  --fs-13: 13px;
+  --fs-14: 14px;       /* 正文最小 */
+  --fs-15: 15px;       /* 任务名 */
+  --fs-16: 16px;
+  --fs-18: 18px;
+  --fs-20: 20px;
+  --fs-24: 24px;
+  --fs-28: 28px;
+  --fs-32: 32px;
+  --fs-40: 40px;
+
+  /* —— 字体 —— */
+  --ff-sans: "PingFang SC", "HarmonyOS Sans", "Microsoft YaHei", "Hiragino Sans GB",
+             "Helvetica Neue", Arial, system-ui, -apple-system, sans-serif;
+  --ff-display: "Quicksand", "Comfortaa", "PingFang SC", system-ui, sans-serif;
+  --ff-mono: "JetBrains Mono", "SF Mono", Consolas, monospace;
+
+  /* —— 布局 —— */
+  --nav-w-mobile: 72px;
+  --nav-w-tablet: 170px;
+  --content-max: 1080px;
+
+  /* —— 缓动 —— */
+  --ease-out: cubic-bezier(.2, .8, .2, 1);
+  --ease-in-out: cubic-bezier(.4, 0, .2, 1);
+}
